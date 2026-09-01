@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #080611;
+    --bg-secondary: #0D0A19;
+    --bg-panel: #121022;
+    --bg-elevated: #18142A;
+    --text-primary: #F5F3FF;
+    --text-muted: #A8A3B8;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Custom Cyber Scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0D0A19;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #282245;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #7C3AED;
+  }
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px -5px rgba(124, 58, 237, 0.4);
+}
+
+.glow-bright {
+  box-shadow: 0 0 25px -3px rgba(155, 92, 255, 0.5);
+}
+
+.cyber-panel {
+  background-color: #121022;
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-radius: 0.75rem;
+}
+
+.cyber-panel-elevated {
+  background-color: #18142A;
+  border: 1px solid rgba(155, 92, 255, 0.25);
+  border-radius: 0.75rem;
+}
