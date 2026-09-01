@@ -1,6 +1,10 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi import HTTPException
+from pathlib import Path
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.logging import logger
@@ -18,6 +22,8 @@ from app.api.routes_health import router as health_router
 from app.api.routes_settings import router as settings_router
 from app.api.routes_logs import router as logs_router
 
+FRONTEND_DIST = Path(__file__).parent.parent.parent / "frontend" / "dist"
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing AAKA-NSXA Intelligence backend...")
@@ -33,16 +39,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount REST API Routers
 api_v1 = settings.API_V1_STR
 app.include_router(projects_router, prefix=api_v1)
 app.include_router(targets_router, prefix=api_v1)
@@ -57,23 +61,32 @@ app.include_router(health_router, prefix=api_v1)
 app.include_router(settings_router, prefix=api_v1)
 app.include_router(logs_router, prefix=api_v1)
 
-# Real-Time WebSocket Endpoint
 @app.websocket("/ws/events")
 async def websocket_events(websocket: WebSocket, project_id: int = None):
     await ws_manager.connect(websocket, project_id=project_id)
     try:
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, project_id=project_id)
-    except Exception as e:
+    except Exception:
         ws_manager.disconnect(websocket, project_id=project_id)
 
-@app.get("/")
-def root():
-    return {
-        "platform": "AAKA-NSXA Intelligence",
-        "description": "Network Security Analytics & Intelligence Platform",
-        "status": "OPERATIONAL",
-        "docs_url": "/docs"
-    }
+# Serve React frontend static files
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
+
+    @app.get("/")
+    def serve_root():
+        return FileResponse(str(FRONTEND_DIST / "index.html"))
+
+    @app.get("/{full_path:path}")
+    def serve_spa(full_path: str):
+        blocked = ("api/", "ws/", "docs", "openapi", "redoc")
+        if any(full_path.startswith(p) for p in blocked):
+            raise HTTPException(status_code=404)
+        return FileResponse(str(FRONTEND_DIST / "index.html"))
+else:
+    @app.get("/")
+    def root():
+        return {"platform": "AAKA-NSXA Intelligence", "status": "OPERATIONAL", "docs": "/docs"}
